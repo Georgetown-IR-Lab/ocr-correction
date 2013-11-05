@@ -6,6 +6,7 @@ import (
     "os"
     log "github.com/cihub/seelog"
     "github.com/wwwjscom/ocr_engine/tagger"
+    "github.com/wwwjscom/ocr_engine/db"
 )
 
 type run_tagger_action struct {
@@ -39,19 +40,31 @@ func (a *run_tagger_action) DefineFlags(fs *flag.FlagSet) {
 func (a *run_tagger_action) Run() {
     SetupLogging(*a.verbosity)
 
-    log.Debug("Connecting to DB")
-    tagger.New(*a.dbUser, *a.dbPass, *a.dbName)
-    log.Debug("Connected")
     a.loadTokens()
     log.Debug("Tokens loaded")
 
-    // Open a connection to the db
+    log.Debug("Connecting to DB")
+    mysql := new(db.Mysql)
+    mysql =  mysql.New(*a.dbUser, *a.dbPass, *a.dbName)
+
+    taggers := new(tagger.Taggers)
+    taggers.Init(mysql)
+    go taggers.Spawn()
+
     // For each token, find it in the db
+    for i := range a.tokens {
+        taggers.Queue <- &a.tokens[i]
+    }
+
+    close(taggers.Queue)
+    <-taggers.Done
+
+
     // If not found...
 }
 
 func (a *run_tagger_action) loadTokens() {
-    a.tokens = make([]string, 100000)
+    a.tokens = make([]string, 10)
 
     file, err := os.Open(*a.lexiconPath)
     defer file.Close()
