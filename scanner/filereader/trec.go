@@ -176,6 +176,7 @@ func (fr *TrecFileReader) read_to_chan(count int) (i int) {
       fr.documents <- doc
 
     default:
+        log.Criticalf("Oh fuck...%v", err)
       panic(err)
 
     }

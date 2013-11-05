@@ -115,7 +115,8 @@ func BadXMLTokenizer_FromReader(rd io.ReadSeeker) (Tokenizer){
     t.scanner = new(scanner.Scanner).Init(rd)
     t.scanner.Whitespace = 0
     t.scanner.Error = func(s *scanner.Scanner, msg string) { panic(msg)}
-    t.scanner.Mode = scanner.ScanStrings
+    //t.scanner.Mode = scanner.ScanStrings // Original scan mode
+    t.scanner.Mode = 0
     t.current_phrase_id = rand.Intn(1000)
     return t
 }
@@ -128,7 +129,8 @@ func (tz *BadXMLTokenizer) Reset() {
     tz.scanner = new(scanner.Scanner).Init(tz.rd)
     tz.scanner.Whitespace = 0
     tz.scanner.Error = func(s *scanner.Scanner, msg string) { panic(msg)}
-    tz.scanner.Mode = scanner.ScanStrings
+    //tz.scanner.Mode = scanner.ScanStrings // Original scan mode
+    tz.scanner.Mode = 0
     tz.current_phrase_id = rand.Intn(1000)
 }
 
