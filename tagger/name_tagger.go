@@ -3,6 +3,7 @@ package tagger
 import (
     log "github.com/cihub/seelog"
     "github.com/wwwjscom/ocr_engine/db"
+    "github.com/wwwjscom/go-sutils"
 )
 
 type Taggers struct {
@@ -91,9 +92,10 @@ func (t *Taggers) wait_on_workers() {
 
 // Searches all tables unit it finds a match or no tables are left
 func (t *Taggers) search_all_tables(token *string, conn *db.Mysql) int {
-    names_q := "select * from names WHERE name = \"" + *token + "\""
-    dict_q  := "select * from dict WHERE word = \"" + *token + "\""
-    geo_q   := "select * from geo WHERE name = \"" + *token + "\""
+    escaped_token := sutils.EscapeAllQuotes(*token)
+    names_q := "select * from names WHERE name = \"" + escaped_token + "\""
+    dict_q  := "select * from dict WHERE word = \"" + escaped_token + "\""
+    geo_q   := "select * from geo WHERE name = \"" + escaped_token + "\""
 
     if conn.Query(names_q) != nil {
         log.Tracef("%s found in names table", *token)

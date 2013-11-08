@@ -41,6 +41,7 @@ func (db *Mysql) New(user, pass, name string) *Mysql {
 
 func (db *Mysql) Query(query string) ([]mysql.Row) {
     // "select * from X where id > %d", 20
+    log.Tracef("Searching the db for %s", query)
     rows, _, err := db.conn.Query(query)
     if err != nil {
         panic(err)
