@@ -51,6 +51,7 @@ func (a *run_tagger_action) Run() {
     taggers.Init(mysql)
     go taggers.Spawn()
 
+    log.Debug("Tagging")
     // For each token, find it in the db
     for i := range a.tokens {
         taggers.Queue <- &a.tokens[i]
