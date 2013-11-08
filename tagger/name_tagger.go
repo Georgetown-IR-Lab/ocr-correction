@@ -7,7 +7,7 @@ import (
 )
 
 type Taggers struct {
-    MAX_WORKERS int
+    workers *int
     Queue chan *string // Tokens channel to process
     mysql chan *db.Mysql // database conn
     complete chan int // tracks complete workers
@@ -19,8 +19,8 @@ type Taggers struct {
     MissingTokens []string
 }
 
-func (t *Taggers) Init(conn *db.Mysql) {
-    t.MAX_WORKERS = 10
+func (t *Taggers) Init(conns []*db.Mysql, workers *int) {
+    t.workers = workers
     t.complete = make(chan int)
     t.Done = make(chan bool)
     t.Queue = make(chan *string)
@@ -32,12 +32,16 @@ func (t *Taggers) Init(conn *db.Mysql) {
     t.MissingTokens = make([]string, 0, 100)
 
     // Don't block waiting for channel to be read
-    go func() { t.mysql<- conn }()
+    go func() {
+        for _, conn := range conns {
+            t.mysql<- conn
+        }
+    }()
 }
 
 // Spawn the tagger workers with a shared mysql conn
 func (t *Taggers) Spawn() {
-    for i := 0; i < t.MAX_WORKERS; i++ {
+    for i := 0; i < *t.workers; i++ {
         go t.find(t.Queue, t.mysql)
     }
 
@@ -79,7 +83,7 @@ func (t *Taggers) wait_on_workers() {
     for count := range t.complete {
         done++
         processed += count
-        if done == t.MAX_WORKERS {
+        if done == *t.workers {
             log.Debugf("%d tokens processed", processed)
             log.Debugf("%d missing tokens", len(t.MissingTokens))
             log.Debugf("%d names tokens", len(t.NamesTokens))

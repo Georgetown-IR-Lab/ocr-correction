@@ -16,6 +16,8 @@ type run_tagger_action struct {
     dbUser *string
     dbPass *string
     dbName *string
+    workers *int
+    connPool []*db.Mysql
 }
 
 func Tagger() *run_tagger_action {
@@ -35,6 +37,7 @@ func (a *run_tagger_action) DefineFlags(fs *flag.FlagSet) {
     a.dbUser = fs.String("db.user", "", "")
     a.dbPass = fs.String("db.pass", "", "")
     a.dbName = fs.String("db.name", "", "")
+    a.workers = fs.Int("workers", 10, "Number of workers and db connections to make")
 }
 
 func (a *run_tagger_action) Run() {
@@ -43,12 +46,11 @@ func (a *run_tagger_action) Run() {
     a.loadTokens()
     log.Debug("Tokens loaded")
 
-    log.Debug("Connecting to DB")
-    mysql := new(db.Mysql)
-    mysql =  mysql.New(*a.dbUser, *a.dbPass, *a.dbName)
+    log.Debug("Filling connection pool")
+    a.setupConnPool()
 
     taggers := new(tagger.Taggers)
-    taggers.Init(mysql)
+    taggers.Init(a.connPool, a.workers)
     go taggers.Spawn()
 
     log.Debug("Tagging")
@@ -77,5 +79,13 @@ func (a *run_tagger_action) loadTokens() {
     scanner := bufio.NewScanner(file)
     for scanner.Scan() {
         a.tokens = append(a.tokens, scanner.Text())
+    }
+}
+
+func (a *run_tagger_action) setupConnPool() {
+    a.connPool = make([]*db.Mysql, *a.workers)
+    for i := 0; i < *a.workers; i++ {
+        conn := new(db.Mysql)
+        a.connPool[i] = conn.New(*a.dbUser, *a.dbPass, *a.dbName)
     }
 }
