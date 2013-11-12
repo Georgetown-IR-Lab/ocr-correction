@@ -39,7 +39,7 @@ func (t *Taggers) Init(conns []*db.Mysql, workers *int) {
     }()
 }
 
-// Spawn the tagger workers with a shared mysql conn
+// Spawn the tagger workers with shared mysql conns
 func (t *Taggers) Spawn() {
     for i := 0; i < *t.workers; i++ {
         go t.find(t.Queue, t.mysql)
