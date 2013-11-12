@@ -55,11 +55,11 @@ func (a *print_tokens_action) Run() {
     for doc := range docStream {
 
         for t := range doc.Tokens() {
-            log.Debugf("Adding token: %s", t)
+            log.Tracef("Adding token: %s", t)
             writer.StringChan <- &t.Text
         }
 
-        fmt.Printf("Document %s (%d tokens)\n", doc.Identifier(), doc.Len())
+        log.Debugf("Document %s (%d tokens)\n", doc.Identifier(), doc.Len())
     }
 
     log.Info("Done reading from the docStream")
