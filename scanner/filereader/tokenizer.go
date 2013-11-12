@@ -7,8 +7,11 @@ import log "github.com/cihub/seelog"
 import "fmt"
 import "bytes"
 import "unicode"
+import "regexp"
 
 type TokenType int
+
+var garbageRegexp = regexp.MustCompile(`^[-\$\.,0-9]+$`)
 
 const (
     NullToken = 0
@@ -229,6 +232,16 @@ func (t *BadXMLTokenizer) parseCompound() (*Token, bool) {
           return nil, false
         }
 
+    case next == '/':
+        if entity.Len() > 0 {
+            log.Tracef("Found a '%c'.  Splitting on it. Returning %s.", next, entity.String())
+            tok := NewToken(entity.String(), TextToken)
+            tok.PhraseId = compoundPhraseId
+            return tok, true
+        } else {
+            return nil, false
+        }
+
       case unicode.IsOneOf(alnum, next):
         t.scanner.Scan()
         entity.WriteString(t.scanner.TokenText())
@@ -270,7 +283,7 @@ func (t *BadXMLTokenizer) parseCompound() (*Token, bool) {
         }
 
       default:
-        if entity.Len() > 0 {
+        if entity.Len() > 0 && garbageRegexp.FindString(entity.String()) == "" {
           tok := NewToken(entity.String(), TextToken)
           tok.PhraseId = compoundPhraseId
           return tok, true
