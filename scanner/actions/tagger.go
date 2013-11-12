@@ -7,6 +7,7 @@ import (
     log "github.com/cihub/seelog"
     "github.com/wwwjscom/ocr_engine/tagger"
     "github.com/wwwjscom/ocr_engine/db"
+    "github.com/wwwjscom/ocr_engine/scanner/filewriter"
 )
 
 type run_tagger_action struct {
@@ -62,6 +63,15 @@ func (a *run_tagger_action) Run() {
     close(taggers.Queue)
     <-taggers.Done
 
+    // Write the missing tokens to disk
+    fw := new(filewriter.TrecFileWriter)
+    fw.Init("/tmp/missing_tokens")
+    go fw.WriteAllTokens()
+    for i := range taggers.MissingTokens {
+        fw.StringChan<- &taggers.MissingTokens[i]
+    }
+    close(fw.StringChan)
+    fw.Wait()
 
     // If not found...
 }
