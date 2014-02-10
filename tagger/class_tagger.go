@@ -13,10 +13,10 @@ type Taggers struct {
     complete chan int // tracks complete workers
     Done chan bool // Signals that all workers are complete
 
-    DictTokens []string
-    NamesTokens []string
-    GeoTokens []string
-    MissingTokens []string
+    DictTokens Lexicon
+    NamesTokens Lexicon
+    GeoTokens Lexicon
+    MissingTokens Lexicon
 }
 
 func (t *Taggers) Init(conns []*db.Mysql, workers *int) {
@@ -25,6 +25,10 @@ func (t *Taggers) Init(conns []*db.Mysql, workers *int) {
     t.Done = make(chan bool)
     t.Queue = make(chan *string)
     t.mysql = make(chan *db.Mysql)
+
+    names_q := "select * from names WHERE name = \"" + escaped_token + "\""
+    dict_q  := "select * from dict WHERE word = \"" + escaped_token + "\""
+    geo_q   := "select * from geo WHERE name = \"" + escaped_token + "\""
 
     t.DictTokens = make([]string, 0, 100)
     t.NamesTokens = make([]string, 0, 100)
@@ -97,6 +101,7 @@ func (t *Taggers) wait_on_workers() {
 // Searches all tables unit it finds a match or no tables are left
 func (t *Taggers) search_all_tables(token *string, conn *db.Mysql) int {
     escaped_token := sutils.EscapeAllQuotes(*token)
+    NamesLex.Find(escaped_token)
     names_q := "select * from names WHERE name = \"" + escaped_token + "\""
     dict_q  := "select * from dict WHERE word = \"" + escaped_token + "\""
     geo_q   := "select * from geo WHERE name = \"" + escaped_token + "\""
