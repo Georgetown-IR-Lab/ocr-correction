@@ -67,10 +67,10 @@ func (t *Taggers) find(queue chan *string, mysql chan *db.Mysql) {
         go func() { mysql<- conn }()
 
         switch kind {
-        case -1: t.MissingTokens = append(t.MissingTokens, *token)
-        case 1: t.NamesTokens = append(t.NamesTokens, *token)
-        case 2: t.DictTokens = append(t.DictTokens, *token)
-        case 3: t.GeoTokens = append(t.GeoTokens, *token)
+        case -1: t.MissingTokens.Add(token)
+        case 1: t.NamesTokens.Add(token)
+        case 2: t.DictTokens.Add(token)
+        case 3: t.GeoTokens.Add(token)
         }
 
         i++
@@ -89,10 +89,10 @@ func (t *Taggers) wait_on_workers() {
         processed += count
         if done == *t.workers {
             log.Debugf("%d tokens processed", processed)
-            log.Debugf("%d missing tokens", len(t.MissingTokens))
-            log.Debugf("%d names tokens", len(t.NamesTokens))
-            log.Debugf("%d dict tokens", len(t.DictTokens))
-            log.Debugf("%d geo tokens", len(t.GeoTokens))
+            log.Debugf("%d missing tokens", t.MissingTokens.Len())
+            log.Debugf("%d names tokens", t.NamesTokens.Len())
+            log.Debugf("%d dict tokens", t.DictTokens.Len())
+            log.Debugf("%d geo tokens", t.GeoTokens.Len())
             return
         }
     }

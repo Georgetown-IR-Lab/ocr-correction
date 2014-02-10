@@ -1,6 +1,7 @@
 package actions
 
 import (
+    "fmt"
     "bufio"
     "flag"
     "os"
@@ -67,8 +68,9 @@ func (a *run_tagger_action) Run() {
     fw := new(filewriter.TrecFileWriter)
     fw.Init("/tmp/missing_tokens")
     go fw.WriteAllTokens()
-    for i := range taggers.MissingTokens {
-        fw.StringChan<- &taggers.MissingTokens[i]
+    for k, v := range taggers.MissingTokens.Map() {
+        s := fmt.Sprintf("%s|%d", k, v)
+        fw.StringChan<- &s
     }
     close(fw.StringChan)
     fw.Wait()
