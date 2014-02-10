@@ -13,10 +13,15 @@ type Taggers struct {
     complete chan int // tracks complete workers
     Done chan bool // Signals that all workers are complete
 
-    DictTokens Lexicon
-    NamesTokens Lexicon
-    GeoTokens Lexicon
-    MissingTokens Lexicon
+
+//    DictTokens []string
+//    NamesTokens []string
+//    GeoTokens []string
+//    MissingTokens []string
+    DictTokens *db.Lexicon
+    NamesTokens *db.Lexicon
+    GeoTokens *db.Lexicon
+    MissingTokens *db.Lexicon
 }
 
 func (t *Taggers) Init(conns []*db.Mysql, workers *int) {
@@ -26,16 +31,27 @@ func (t *Taggers) Init(conns []*db.Mysql, workers *int) {
     t.Queue = make(chan *string)
     t.mysql = make(chan *db.Mysql)
 
-    names_q := "select * from names WHERE name = \"" + escaped_token + "\""
-    dict_q  := "select * from dict WHERE word = \"" + escaped_token + "\""
-    geo_q   := "select * from geo WHERE name = \"" + escaped_token + "\""
+//    names_q := "select * from names WHERE name = \"" + escaped_token + "\""
+//    dict_q  := "select * from dict WHERE word = \"" + escaped_token + "\""
+//    geo_q   := "select * from geo WHERE name = \"" + escaped_token + "\""
 
-    t.DictTokens = make([]string, 0, 100)
-    t.NamesTokens = make([]string, 0, 100)
-    t.GeoTokens = make([]string, 0, 100)
-    t.MissingTokens = make([]string, 0, 100)
+//    t.DictTokens = make([]string, 0, 100)
+//    t.NamesTokens = make([]string, 0, 100)
+//    t.GeoTokens = make([]string, 0, 100)
+//    t.MissingTokens = make([]string, 0, 100)
 
-    // Don't block waiting for channel to be read
+    t.DictTokens    = new(db.Lexicon).Init(t.mysql, "dict")
+    t.NamesTokens   = new(db.Lexicon).Init(t.mysql, "names")
+    t.GeoTokens     = new(db.Lexicon).Init(t.mysql, "geo")
+    t.MissingTokens = new(db.Lexicon).Init(t.mysql, "missing")
+    
+    
+  
+  
+  
+  
+  
+  // Don't block waiting for channel to be read
     go func() {
         for _, conn := range conns {
             t.mysql<- conn

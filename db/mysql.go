@@ -32,7 +32,7 @@ func (db *Mysql) New(user, pass, name string) *Mysql {
     return db
 }
 
-func (db *Mysql) Query(query string) ([]mysql.Row) {
+func (db *Mysql) Query(query string) []mysql.Row {
     log.Tracef("Searching the db for %s", query)
     rows, _, err := db.conn.Query(query)
     if err != nil {
