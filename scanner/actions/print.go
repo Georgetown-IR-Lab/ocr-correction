@@ -65,9 +65,6 @@ func (a *print_tokens_action) Run() {
         log.Debugf("Document %s (%d tokens)\n", doc.Identifier(), doc.Len())
     }
     
-    log.Info("Done reading from the docStream")
-    close(writer.StringChan)
-    
     log.Debug("Sorting Words")
     lex.Sort()
     
@@ -77,6 +74,9 @@ func (a *print_tokens_action) Run() {
       writer.StringChan <- &w
     }
     
+    log.Info("Done reading from the docStream")
+    close(writer.StringChan)
+
     // Wait for the writer to finish
     writer.Wait()
 }
