@@ -66,12 +66,12 @@ func (a *print_tokens_action) Run() {
     }
     
     log.Debug("Sorting Words")
-    lex.Sort()
+    lex.SortByText()
     
     log.Debug("Writing Words")
     // Write out all the words
-    for _, w := range lex.Words() {
-      writer.StringChan <- &w
+    for _, t := range lex.Terms() {
+      writer.StringChan <- &t.Text
     }
     
     log.Info("Done reading from the docStream")
