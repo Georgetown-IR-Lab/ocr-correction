@@ -59,18 +59,18 @@ func (a *print_tokens_action) Run() {
 
         for t := range doc.Tokens() {
             log.Tracef("Adding token: %s", t)            
-            lex.Add(t.Text)            
+            lex.Add(t.Text)
         }
 
         log.Debugf("Document %s (%d tokens)\n", doc.Identifier(), doc.Len())
     }
     
     log.Debug("Sorting Words")
-    lex.SortByText()
+    terms := lex.SortByText()
     
     log.Debug("Writing Words")
     // Write out all the words
-    for _, t := range lex.Terms() {
+    for _, t := range terms {
       writer.StringChan <- &t.Text
     }
     

@@ -33,10 +33,10 @@ func TestHasWord(t *testing.T) {
   lex.Add("Foo")
   
   for _, tc := range tests {
-    if tc.expected == lex.Has(tc.word) {
+    if term, _ := lex.Has(tc.word); term == tc.expected {
       continue
-    } else if !lex.Has(tc.word).Equal(tc.expected) {
-      t.Errorf("Given %s, expected %s, but received %s", tc.word, tc.expected, lex.Has(tc.word))
+    } else if term, has := lex.Has(tc.word); has && !term.Equal(tc.expected) {
+      t.Errorf("Given %s, expected %s, but received %s", tc.word, tc.expected, term)
     }
   }
 }
@@ -45,9 +45,10 @@ func TestSortByText(t *testing.T) {
   lex := NewLexicon()
   lex.Add("ZZZ")
   lex.Add("AAA")
-  lex.SortByText()
+  lex.Add("AAA")
+  result := lex.SortByText()
   
-  if lex.terms[0].Text != "aaa" || lex.terms[1].Text != "zzz" {
+  if result[0].Text != "aaa" || result[1].Text != "zzz" {
     t.Error("Not sorted correctly...")
   }
 }
@@ -64,11 +65,23 @@ func TestUniquiness(t *testing.T) {
     t.Errorf("Expected size of 2, found %d", lex.Size())
   }
   
-  if count := lex.Has("aaa").Count; count != 3 {
-    t.Errorf("Expected 3, got %d", count)
+  if term, has := lex.Has("aaa"); has && term.Count != 3 {
+    t.Errorf("Expected 3, got %d", term.Count)
   }
-  
-  if count := lex.Has("ZzZ").Count; count != 2 {
-    t.Errorf("Expected 2, got %d", count)
+
+  if term, has := lex.Has("ZzZ"); has && term.Count != 2 {  
+    t.Errorf("Expected 2, got %d", term.Count)
+  }
+}
+
+func TestTerms(t *testing.T) {
+  lex := NewLexicon()
+  lex.Add("ZZZ")
+  lex.Add("AAA") 
+  lex.Add("AAA") 
+
+  terms := lex.terms
+  if len(terms) != 2 {
+    t.Errorf("Wrong size")
   }
 }

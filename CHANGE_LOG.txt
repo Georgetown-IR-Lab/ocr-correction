@@ -1,0 +1,1 @@
+* Converted lexicon to use a map instead of a slice.  It's now much faster.

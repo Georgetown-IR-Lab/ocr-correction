@@ -11,51 +11,55 @@ import (
 )
 
 type Lexicon struct {  
-  terms []*Term
+  terms map[string]*Term
 }
 
 // Initializes and returns a new Lexicon
 func NewLexicon() (*Lexicon) {
   l := new(Lexicon)
-  l.terms = make([]*Term, 0)
+  l.terms = make(map[string]*Term)
   return l
 }
 
 // Adds the term if it doesnt exist, otherwise it'll increment the
 // count of that term
 func (l *Lexicon) Add(word string) {
-  term := l.Has(word)
-  
-  if term == nil {
-    term := NewTerm(downcase(&word))
-    l.terms = append(l.terms, term) 
-  } else {
+  term, has_term := l.Has(word)
+
+  if has_term {
     term.IncrementCount()
+  } else {
+    term := NewTerm(downcase(word))
+    l.terms[term.Text] = term
   }  
 }
 
-func (l *Lexicon) SortByText() {
-  sort.Sort(ByText(l.terms))
+func (l *Lexicon) SortByText() []*Term {
+  terms := l.Terms()
+  sort.Sort(ByText(terms))
+  return terms
 }
 
+
 func (l *Lexicon) Terms() []*Term {
-  return l.terms
+  terms := make([]*Term, 0)
+  for _, v := range l.terms {
+    terms = append(terms, v)
+  }
+  return terms
 }
+
 
 func (l *Lexicon) Size() int {
   return len(l.terms)
 }
 
-func (l *Lexicon) Has(word string) *Term {
-  for _, t := range l.terms {
-    if t.Text == downcase(&word) {
-      return t
-    }
-  }
-  return nil
+func (l *Lexicon) Has(word string) (*Term, bool) {
+  term, contains := l.terms[downcase(word)]
+  return term, contains
 }
 
 // Just a lazy way to simplify downcasing terms
-func downcase(word *string) string {
-  return strings.ToLower(*word)
+func downcase(word string) string {
+  return strings.ToLower(word)
 }
