@@ -8,6 +8,7 @@ import "regexp"
 import log "github.com/cihub/seelog"
 import filereader "github.com/wwwjscom/ocr_engine/scanner/filereader"
 import filewriter "github.com/wwwjscom/ocr_engine/scanner/filewriter"
+import lexicon "github.com/wwwjscom/ocr_engine/lexicon"
 
 func PrintTokens() *print_tokens_action {
     return new(print_tokens_action)
@@ -42,6 +43,8 @@ func (a *print_tokens_action) DefineFlags(fs *flag.FlagSet) {
 
 func (a *print_tokens_action) Run() {
     SetupLogging(*a.verbosity)
+    
+    lex := lexicon.NewLexicon()
 
     writer := new(filewriter.TrecFileWriter)
     writer.Init(*a.tokenOutputPath)
@@ -55,13 +58,22 @@ func (a *print_tokens_action) Run() {
     for doc := range docStream {
 
         for t := range doc.Tokens() {
-            log.Tracef("Adding token: %s", t)
-            writer.StringChan <- &t.Text
+            log.Tracef("Adding token: %s", t)            
+            lex.Add(t.Text)
         }
 
         log.Debugf("Document %s (%d tokens)\n", doc.Identifier(), doc.Len())
     }
-
+    
+    log.Debug("Sorting Words")
+    terms := lex.SortByText()
+    
+    log.Debug("Writing Words")
+    // Write out all the words
+    for _, t := range terms {
+      writer.StringChan <- &t.Text
+    }
+    
     log.Info("Done reading from the docStream")
     close(writer.StringChan)
 

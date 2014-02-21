@@ -1,0 +1,12 @@
+v0.1.0
+* Converted lexicon to use a map instead of a slice.  It's now much faster.
+
+
+
+Notes:
+# is a major change
+* is a feature
+- is a bug fix 
+
+So putting these symbols into the change log causes the following version bumps
+(#.*.-)
