@@ -15,8 +15,8 @@ type Mysql struct {
     conn mysql.Conn
 }
 
-func (db *Mysql) New(user, pass, name string) *Mysql {
-    db = new(Mysql)
+func NewMySQLConn(user, pass, name string) *Mysql {
+    db := new(Mysql)
 
     db.user = user
     db.pass = pass
