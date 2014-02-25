@@ -45,16 +45,16 @@ func (a *run_tagger_action) Run() {
     SetupLogging(*a.verbosity)
 
     a.loadTokens()
-    log.Debug("Tokens loaded")
+    log.Info("Tokens loaded")
 
-    log.Debug("Filling connection pool")
+    log.Info("Filling connection pool")
     a.setupConnPool()
 
     taggers := new(tagger.Taggers)
     taggers.Init(a.connPool, a.workers)
     go taggers.Spawn()
 
-    log.Debug("Tagging")
+    log.Info("Tagging")
     // For each token, find it in the db
     for i := range a.tokens {
         taggers.Queue <- &a.tokens[i]
