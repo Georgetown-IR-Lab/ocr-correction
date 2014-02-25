@@ -95,7 +95,6 @@ func (a *run_tagger_action) loadTokens() {
 func (a *run_tagger_action) setupConnPool() {
     a.connPool = make([]*db.Mysql, *a.workers)
     for i := 0; i < *a.workers; i++ {
-        conn := new(db.Mysql)
-        a.connPool[i] = conn.New(*a.dbUser, *a.dbPass, *a.dbName)
+        a.connPool[i] = db.NewMySQLConn(*a.dbUser, *a.dbPass, *a.dbName)
     }
 }
