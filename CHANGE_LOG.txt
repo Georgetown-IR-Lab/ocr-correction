@@ -1,3 +1,7 @@
+v1.0.0
+# altered database schema
+- Bug fix for logger output level of some tasks
+
 v0.1.0
 * Converted lexicon to use a map instead of a slice.  It's now much faster.
 
