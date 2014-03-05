@@ -4,6 +4,7 @@ import (
     log "github.com/cihub/seelog"
     "github.com/wwwjscom/ocr_engine/db"
     "github.com/wwwjscom/go-sutils"
+    porter "github.com/agonopol/go-stem/stemmer"
 )
 
 type Taggers struct {
@@ -17,9 +18,11 @@ type Taggers struct {
     NamesTokens []string
     GeoTokens []string
     MissingTokens []string
+    useStemmer *bool
 }
 
-func (t *Taggers) Init(conns []*db.Mysql, workers *int) {
+func (t *Taggers) Init(conns []*db.Mysql, workers *int, useStemmer *bool) {
+    t.useStemmer = useStemmer
     t.workers = workers
     t.complete = make(chan int)
     t.Done = make(chan bool)
@@ -57,6 +60,9 @@ func (t *Taggers) find(queue chan *string, mysql chan *db.Mysql) {
             log.Tracef("Caught empty str")
             continue
         }
+        
+        t.stem(token)
+        
         conn := <-mysql
         log.Tracef("Searching for token %s", *token)
         kind := t.search_all_tables(token, conn)
@@ -74,6 +80,14 @@ func (t *Taggers) find(queue chan *string, mysql chan *db.Mysql) {
 
     log.Debugf("Worker, out.  Processed %d tokens", i)
     t.complete<- i
+}
+
+func (t *Taggers) stem(token *string) {
+  if *t.useStemmer {
+    stream := []byte(*token)
+    stemmed := string(porter.Stem(stream))
+    *token = stemmed
+  }
 }
 
 // Don't return until all workers have exited
