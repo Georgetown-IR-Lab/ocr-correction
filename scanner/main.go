@@ -13,6 +13,6 @@ func main() {
 
 func Run() {
   actions.SetupLogging(0)
-  subcommand.Parse( true, actions.PrintTokens(), actions.Tagger())
+  subcommand.Parse( true, actions.PrintTokens(), actions.Tagger(), actions.Suggest())
 }
 

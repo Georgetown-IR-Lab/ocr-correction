@@ -1,5 +1,5 @@
 package suggester
 
-type Suggester interface {
-  Suggest(string) []*Suggestion
-}
+//type Suggester interface {
+//  Suggest(string) []*Suggestion
+//}

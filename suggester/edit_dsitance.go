@@ -65,6 +65,7 @@ func (ed *EditDistanceSuggester) search(word string, table_name string, wg *sync
   
   for _, row := range results {
     newSuggestion := new(EditDistanceSuggestion)
+    newSuggestion.OriginalText = word
     newSuggestion.Text = row.Str(0)
     newSuggestion.Confidence = row.Int(1)
     ed.suggestions_chan <- newSuggestion
@@ -100,6 +101,7 @@ func determineSubspaceLengths(word string) (int, int){
 
 // Implements the suggestion interface
 type EditDistanceSuggestion struct {
+  OriginalText string
   Confidence int 
   Text string
 }
