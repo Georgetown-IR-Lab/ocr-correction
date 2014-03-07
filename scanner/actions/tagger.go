@@ -19,6 +19,7 @@ type run_tagger_action struct {
     dbName *string
     workers *int
     connPool []*db.Mysql
+    useStemmer *bool
 }
 
 func Tagger() *run_tagger_action {
@@ -39,6 +40,7 @@ func (a *run_tagger_action) DefineFlags(fs *flag.FlagSet) {
     a.dbPass = fs.String("db.pass", "", "")
     a.dbName = fs.String("db.name", "", "")
     a.workers = fs.Int("workers", 10, "Number of workers and db connections to make")
+    a.useStemmer = fs.Bool("useStemmer", false, "Use a porter stemmer on the terms before assigning them to a group.")
 }
 
 func (a *run_tagger_action) Run() {
@@ -51,7 +53,7 @@ func (a *run_tagger_action) Run() {
     a.setupConnPool()
 
     taggers := new(tagger.Taggers)
-    taggers.Init(a.connPool, a.workers)
+    taggers.Init(a.connPool, a.workers, a.useStemmer)
     go taggers.Spawn()
 
     log.Info("Tagging")
@@ -74,6 +76,7 @@ func (a *run_tagger_action) Run() {
     fw.Wait()
 
     // If not found...
+    
 }
 
 func (a *run_tagger_action) loadTokens() {
@@ -95,7 +98,6 @@ func (a *run_tagger_action) loadTokens() {
 func (a *run_tagger_action) setupConnPool() {
     a.connPool = make([]*db.Mysql, *a.workers)
     for i := 0; i < *a.workers; i++ {
-        conn := new(db.Mysql)
-        a.connPool[i] = conn.New(*a.dbUser, *a.dbPass, *a.dbName)
+        a.connPool[i] = db.NewMySQLConn(*a.dbUser, *a.dbPass, *a.dbName)
     }
 }
