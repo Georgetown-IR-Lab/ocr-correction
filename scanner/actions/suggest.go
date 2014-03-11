@@ -7,8 +7,10 @@ import (
     "os"
     "sync"
     log "github.com/cihub/seelog"
-    "github.com/wwwjscom/ocr_engine/suggester"
-    "github.com/wwwjscom/ocr_engine/db"
+    segments "github.com/wwwjscom/go-segments"
+    "github.com/wwwjscom/go-segments/mysql_db"
+//    "github.com/wwwjscom/ocr_engine/suggester"
+//    "github.com/wwwjscom/ocr_engine/db"
     "github.com/wwwjscom/ocr_engine/scanner/filewriter"
 )
 
@@ -20,7 +22,8 @@ type run_suggest_action struct {
     dbPass *string
     dbName *string
     workers *int
-    connPool chan *db.Mysql
+    topK *int
+    connPool chan *mysql_db.Mysql
 }
 
 func Suggest() *run_suggest_action {
@@ -41,6 +44,7 @@ func (a *run_suggest_action) DefineFlags(fs *flag.FlagSet) {
     a.dbPass = fs.String("db.pass", "", "")
     a.dbName = fs.String("db.name", "", "")
     a.workers = fs.Int("workers", 1, "Number of workers and db connections to make")
+    a.topK = fs.Int("topk", 10, "Top-k suggested terms to return for each word")
 }
 
 func (a *run_suggest_action) Run() {
@@ -76,19 +80,34 @@ func (a *run_suggest_action) Run() {
         
         wg.Add(1)
         go func(token string, wg *sync.WaitGroup, i int) {
-            ed_suggester := suggester.NewEditDistanceSuggester(a.connPool, tables_to_search)
+//            ed_suggester := suggester.NewEditDistanceSuggester(a.connPool, tables_to_search)
+//            
+//            log.Debugf("Finding suggestions for %s", token)
+//            suggestions := ed_suggester.Suggest(token)
+//
+//            suggestion_string := fmt.Sprintf("%s ::: ", token)
+//            for _, suggestion := range suggestions {
+//                suggestion_string += fmt.Sprintf("%s::%d, ", suggestion.Text, suggestion.Confidence)
+//            }
+//            
+//            // Chop off the ending of ", "
+//            suggestion_string = suggestion_string[:len(suggestion_string)-2]
+//            
+//            fw.StringChan <- &suggestion_string
             
-            log.Debugf("Finding suggestions for %s", token)
-            suggestions := ed_suggester.Suggest(token)
-
+            dbConn := <-a.connPool
+            suggestions := segments.Suggest(token, dbConn, tables_to_search)
+            a.connPool <- dbConn
+            
             suggestion_string := fmt.Sprintf("%s ::: ", token)
-            for _, suggestion := range suggestions {
-                suggestion_string += fmt.Sprintf("%s::%d, ", suggestion.Text, suggestion.Confidence)
+            for i, sug := range suggestions {
+                suggestion_string += fmt.Sprintf("%s::%f, ", sug.Term, sug.Confidence)
+                if i >= *a.topK {
+                    break
+                }
             }
-            
             // Chop off the ending of ", "
             suggestion_string = suggestion_string[:len(suggestion_string)-2]
-            
             fw.StringChan <- &suggestion_string
             
             log.Infof("%d remaining", len(a.tokens)-i)
@@ -120,8 +139,12 @@ func (a *run_suggest_action) loadTokens() {
 }
 
 func (a *run_suggest_action) setupConnPool() {
-    a.connPool = make(chan *db.Mysql, *a.workers)
+    a.connPool = make(chan *mysql_db.Mysql, *a.workers)
     for i := 0; i < *a.workers; i++ {
-        a.connPool<- db.NewMySQLConn(*a.dbUser, *a.dbPass, *a.dbName)
+        a.connPool <- segments.NewDBConn(*a.dbUser, *a.dbPass, *a.dbName)
     }
+//    a.connPool = make(chan *db.Mysql, *a.workers)
+//    for i := 0; i < *a.workers; i++ {
+//        a.connPool<- db.NewMySQLConn(*a.dbUser, *a.dbPass, *a.dbName)
+//    }
 }
