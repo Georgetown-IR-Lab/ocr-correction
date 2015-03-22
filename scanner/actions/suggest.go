@@ -6,6 +6,8 @@ import (
     "flag"
     "os"
     "sync"
+    "strings"
+    "strconv"
     log "github.com/cihub/seelog"
     segments "github.com/wwwjscom/go-segments"
     "github.com/wwwjscom/go-segments/mysql_db"
@@ -17,13 +19,19 @@ import (
 type run_suggest_action struct {
     Args
     lexiconPath *string
-    tokens []string
+    tokens []Bigram
     dbUser *string
     dbPass *string
     dbName *string
     workers *int
     topK *int
     connPool chan *mysql_db.Mysql
+}
+
+type Bigram struct {
+    string1 string
+    string2 string
+    misspelled_index int64
 }
 
 func Suggest() *run_suggest_action {
@@ -69,37 +77,33 @@ func (a *run_suggest_action) Run() {
     a.setupConnPool()
 
 
-    tables_to_search := []string{"names", "geo", "dict"}
+    //tables_to_search := []string{"names", "geo", "dict"}
+    tables_to_search := []string{"wikipedia_bigrams"}
 
     log.Debugf("Tokens size: %d", len(a.tokens))
-    for i, token := range a.tokens {
+    for i, bi := range a.tokens {
         
         // Sync with the worker queue to prevent a million go threads from being
         // created on startup
         <-worker_queue
         
         wg.Add(1)
-        go func(token string, wg *sync.WaitGroup, i int) {
-//            ed_suggester := suggester.NewEditDistanceSuggester(a.connPool, tables_to_search)
-//            
-//            log.Debugf("Finding suggestions for %s", token)
-//            suggestions := ed_suggester.Suggest(token)
-//
-//            suggestion_string := fmt.Sprintf("%s ::: ", token)
-//            for _, suggestion := range suggestions {
-//                suggestion_string += fmt.Sprintf("%s::%d, ", suggestion.Text, suggestion.Confidence)
-//            }
-//            
-//            // Chop off the ending of ", "
-//            suggestion_string = suggestion_string[:len(suggestion_string)-2]
-//            
-//            fw.StringChan <- &suggestion_string
+        go func(bi Bigram, wg *sync.WaitGroup, i int) {
             
             dbConn := <-a.connPool
-            suggestions := segments.Suggest(token, dbConn, tables_to_search)
+            log.Debugf("bi.string1: %s; bi.string2: %s; bi.misspelled_index: %d", bi.string1, bi.string2, bi.misspelled_index)
+            suggestions := segments.Suggest(bi.string1, bi.string2, bi.misspelled_index, dbConn, tables_to_search)
             a.connPool <- dbConn
             
-            suggestion_string := fmt.Sprintf("%s ::: ", token)
+            // FIX -- shouldn't just be bi.string1, should be the misspelled one.
+            misspelled_term := ""
+            if bi.misspelled_index == 0 {
+                misspelled_term = bi.string1
+            } else {
+                misspelled_term = bi.string2
+            }
+
+            suggestion_string := fmt.Sprintf("%s ::: ", misspelled_term)
             for i, sug := range suggestions {
                 suggestion_string += fmt.Sprintf("%s::%f, ", sug.Term, sug.Confidence)
                 if i >= *a.topK {
@@ -114,7 +118,7 @@ func (a *run_suggest_action) Run() {
             worker_queue<-1
             
             wg.Done()
-        }(token, wg, i)
+        }(bi, wg, i)
     }
 
     wg.Wait()
@@ -122,8 +126,10 @@ func (a *run_suggest_action) Run() {
     fw.Wait()
 }
 
+
 func (a *run_suggest_action) loadTokens() {
-    a.tokens = make([]string, 0)
+    //a.tokens = make([]string, 0)
+    a.tokens = make([]Bigram, 0)
 
     file, err := os.Open(*a.lexiconPath)
     defer file.Close()
@@ -134,7 +140,17 @@ func (a *run_suggest_action) loadTokens() {
 
     scanner := bufio.NewScanner(file)
     for scanner.Scan() {
-        a.tokens = append(a.tokens, scanner.Text())
+        //a.tokens = append(a.tokens, scanner.Text())
+
+        // Expected format: term1 term2 index_of_misspelled_term---0 or 1
+        text := strings.Split(scanner.Text(), " ")
+        fmt.Println(text)
+        bi := new(Bigram)
+        bi.string1 = text[0]
+        bi.string2 = text[1]
+        bi.misspelled_index, _ = strconv.ParseInt(text[2], 10, 0)
+        log.Debugf("bi.string1: %s; bi.string2: %s; bi.misspelled_index: %d", bi.string1, bi.string2, bi.misspelled_index)
+        a.tokens = append(a.tokens, *bi)
     }
 }
 
